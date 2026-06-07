@@ -1,0 +1,119 @@
+---
+# ============================================================
+# Ansible Playbook: Network Device Configuration Backup
+# Project: Hybrid Enterprise Network Security Lab
+# Author: Vedakumara K H
+# Description: Automates backup of all network device configs
+#              Saves timestamped backups to local directory
+# ============================================================
+
+- name: Backup Cisco ASA Firewall Configuration
+  hosts: cisco_asa
+  gather_facts: false
+  connection: network_cli
+
+  vars:
+    backup_dir: "./backups/{{ ansible_date_time.date }}"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+
+    - name: Gather ASA running configuration
+      cisco.asa.asa_command:
+        commands:
+          - show running-config
+          - show version
+          - show interface
+          - show access-list
+          - show crypto ikev2 sa
+      register: asa_output
+
+    - name: Save ASA config to file
+      copy:
+        content: "{{ asa_output.stdout[0] }}"
+        dest: "{{ backup_dir }}/ASA-{{ inventory_hostname }}-{{ timestamp }}.cfg"
+      delegate_to: localhost
+
+    - name: Log backup success
+      debug:
+        msg: "ASA backup completed: {{ backup_dir }}/ASA-{{ inventory_hostname }}-{{ timestamp }}.cfg"
+
+---
+- name: Backup Cisco IOS-XR Router Configuration
+  hosts: cisco_iosxr
+  gather_facts: false
+  connection: network_cli
+
+  vars:
+    backup_dir: "./backups/{{ ansible_date_time.date }}"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+
+    - name: Gather IOS-XR running configuration
+      cisco.iosxr.iosxr_command:
+        commands:
+          - show running-config
+          - show version
+          - show interfaces brief
+          - show bgp summary
+          - show ospf neighbor
+          - show mpls ldp neighbor
+      register: iosxr_output
+
+    - name: Save IOS-XR config to file
+      copy:
+        content: "{{ iosxr_output.stdout[0] }}"
+        dest: "{{ backup_dir }}/IOSXR-{{ inventory_hostname }}-{{ timestamp }}.cfg"
+      delegate_to: localhost
+
+    - name: Log backup success
+      debug:
+        msg: "IOS-XR backup completed: {{ backup_dir }}/IOSXR-{{ inventory_hostname }}-{{ timestamp }}.cfg"
+
+---
+- name: Backup Fortinet FortiGate Configuration
+  hosts: fortigate
+  gather_facts: false
+  connection: httpapi
+
+  vars:
+    backup_dir: "./backups/{{ ansible_date_time.date }}"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+
+    - name: Backup FortiGate full config
+      fortinet.fortios.fortios_monitor_fact:
+        selector: system_config_backup
+        params:
+          scope: global
+      register: forti_backup
+
+    - name: Save FortiGate config to file
+      copy:
+        content: "{{ forti_backup.meta.raw }}"
+        dest: "{{ backup_dir }}/FORTI-{{ inventory_hostname }}-{{ timestamp }}.conf"
+      delegate_to: localhost
+
+    - name: Log backup success
+      debug:
+        msg: "FortiGate backup completed: {{ backup_dir }}/FORTI-{{ inventory_hostname }}-{{ timestamp }}.conf"
