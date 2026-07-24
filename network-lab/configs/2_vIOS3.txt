@@ -1,0 +1,48 @@
+! =========================================================
+! vIOS3 - Core / Transit router (BGP AS 65000)
+! Sits between Site A (vIOS1) and Site B (vIOS2), simulates
+! the WAN/ISP backbone. Runs pure BGP transit - no OSPF here.
+! HOW TO APPLY: same as vIOS1 - console, enable, conf t, paste, end, write memory
+! =========================================================
+
+hostname vIOS3
+no ip domain-lookup
+ip domain-name lab.local
+!
+enable secret Cisco@12345
+username admin privilege 15 secret Cisco@12345
+!
+crypto key generate rsa modulus 1024
+ip ssh version 2
+!
+line vty 0 4
+ login local
+ transport input ssh telnet
+line con 0
+ logging synchronous
+!
+interface Loopback0
+ ip address 3.3.3.3 255.255.255.255
+!
+interface GigabitEthernet0/0
+ description LINK-to-vIOS1-SiteA
+ ip address 10.0.12.2 255.255.255.252
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description LINK-to-vIOS2-SiteB
+ ip address 10.0.23.1 255.255.255.252
+ no shutdown
+!
+router bgp 65000
+ bgp router-id 3.3.3.3
+ bgp log-neighbor-changes
+ neighbor 10.0.12.1 remote-as 65001
+ neighbor 10.0.12.1 description eBGP-to-SiteA-vIOS1
+ neighbor 10.0.23.2 remote-as 65002
+ neighbor 10.0.23.2 description eBGP-to-SiteB-vIOS2
+!
+banner motd # vIOS3 - CORE / Transit Router - Lab Environment #
+!
+end
+write memory

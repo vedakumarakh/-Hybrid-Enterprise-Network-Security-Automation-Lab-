@@ -1,0 +1,35 @@
+! =========================================================
+! Switch5 (Cisco IOL L2 switch) - Site B access layer
+! HOW TO APPLY: console, enable, configure terminal, paste, end, write memory
+! =========================================================
+
+hostname Switch5
+!
+vlan 40
+ name VPC9-USER
+vlan 50
+ name WIN-HOST
+!
+interface GigabitEthernet0/0
+ description TRUNK-to-FortiGate-port2
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk allowed vlan 40,50
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description to-VPC9
+ switchport mode access
+ switchport access vlan 40
+ spanning-tree portfast
+ no shutdown
+!
+interface GigabitEthernet0/2
+ description to-Win-host
+ switchport mode access
+ switchport access vlan 50
+ spanning-tree portfast
+ no shutdown
+!
+end
+write memory

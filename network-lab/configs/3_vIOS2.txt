@@ -1,0 +1,50 @@
+! =========================================================
+! vIOS2 - Site B edge router (BGP AS 65002)
+! HOW TO APPLY: same as vIOS1 - console, enable, conf t, paste, end, write memory
+! =========================================================
+
+hostname vIOS2
+no ip domain-lookup
+ip domain-name lab.local
+!
+enable secret Cisco@12345
+username admin privilege 15 secret Cisco@12345
+!
+crypto key generate rsa modulus 1024
+ip ssh version 2
+!
+line vty 0 4
+ login local
+ transport input ssh telnet
+line con 0
+ logging synchronous
+!
+interface Loopback0
+ ip address 2.2.2.2 255.255.255.255
+!
+interface GigabitEthernet0/0
+ description LINK-to-vIOS3-CORE
+ ip address 10.0.23.2 255.255.255.252
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description LINK-to-FortiGate-port1
+ ip address 10.20.1.1 255.255.255.252
+ no shutdown
+!
+router ospf 1
+ router-id 2.2.2.2
+ network 10.20.1.0 0.0.0.3 area 0
+ redistribute bgp 65002 subnets
+!
+router bgp 65002
+ bgp router-id 2.2.2.2
+ bgp log-neighbor-changes
+ neighbor 10.0.23.1 remote-as 65000
+ neighbor 10.0.23.1 description eBGP-to-CORE-vIOS3
+ redistribute ospf 1
+!
+banner motd # vIOS2 - Site B Edge Router - Lab Environment #
+!
+end
+write memory

@@ -1,0 +1,33 @@
+# Device inventory for the automation scripts.
+# host = the mgmt-reachable IP of each device from wherever you run Python
+# (your EVE-NG "pnetlab" host, a jump box on the same L2 cloud, etc.)
+# Update these to match how you actually reach each device's SSH-enabled interface.
+
+devices:
+  - name: vIOS1
+    device_type: cisco_ios
+    host: 10.10.1.1
+    username: admin
+    password: Cisco@12345
+    secret: Cisco@12345
+
+  - name: vIOS3
+    device_type: cisco_ios
+    host: 10.0.12.2
+    username: admin
+    password: Cisco@12345
+    secret: Cisco@12345
+
+  - name: vIOS2
+    device_type: cisco_ios
+    host: 10.20.1.1
+    username: admin
+    password: Cisco@12345
+    secret: Cisco@12345
+
+  - name: ASAv
+    device_type: cisco_asa
+    host: 10.10.1.2
+    username: admin
+    password: Cisco@12345
+    secret: Cisco@12345

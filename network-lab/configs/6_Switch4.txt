@@ -1,0 +1,44 @@
+! =========================================================
+! Switch4 (Cisco IOL L2 switch) - Site A access layer
+! HOW TO APPLY: console, enable, configure terminal, paste, end, write memory
+! =========================================================
+
+hostname Switch4
+!
+vlan 10
+ name SERVERS-VPC8
+vlan 20
+ name VPC10-USER
+vlan 30
+ name VPC11-ATTACKER
+!
+interface GigabitEthernet0/0
+ description TRUNK-to-ASAv-Gi0/1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description to-VPC10
+ switchport mode access
+ switchport access vlan 20
+ spanning-tree portfast
+ no shutdown
+!
+interface GigabitEthernet0/2
+ description to-VPC11-ATTACKER
+ switchport mode access
+ switchport access vlan 30
+ spanning-tree portfast
+ no shutdown
+!
+interface GigabitEthernet0/3
+ description to-VPC8
+ switchport mode access
+ switchport access vlan 10
+ spanning-tree portfast
+ no shutdown
+!
+end
+write memory

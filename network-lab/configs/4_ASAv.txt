@@ -1,0 +1,120 @@
+! =========================================================
+! ASAv - Site A firewall
+! HOW TO APPLY:
+!   1. Console into ASAv in EVE-NG
+!   2. Type: enable    (press Enter at password prompt if blank)
+!   3. Type: configure terminal
+!   4. Paste everything below, then type: end
+!   5. Save with: write memory
+! =========================================================
+
+hostname ASAv
+domain-name lab.local
+enable password Cisco@12345
+username admin password Cisco@12345 privilege 15
+aaa authentication ssh console LOCAL
+aaa authentication enable console LOCAL
+!
+crypto key generate rsa modulus 1024
+ssh 10.10.1.0 255.255.255.252 outside
+ssh 192.168.10.0 255.255.255.0 inside-servers
+ssh timeout 30
+!
+! ---------- OUTSIDE (link to vIOS1) ----------
+interface GigabitEthernet0/0
+ nameif outside
+ security-level 0
+ ip address 10.10.1.2 255.255.255.252
+ no shutdown
+!
+! ---------- INSIDE trunk to Switch4, one subinterface per VLAN ----------
+interface GigabitEthernet0/1
+ no shutdown
+!
+interface GigabitEthernet0/1.10
+ vlan 10
+ nameif inside-servers
+ security-level 100
+ ip address 192.168.10.1 255.255.255.0
+!
+interface GigabitEthernet0/1.20
+ vlan 20
+ nameif inside-vpc10
+ security-level 100
+ ip address 192.168.20.1 255.255.255.0
+!
+interface GigabitEthernet0/1.30
+ vlan 30
+ nameif inside-vpc11
+ security-level 90
+ ip address 192.168.30.1 255.255.255.0
+!
+same-security-traffic permit inter-interface
+!
+! ---------- OSPF: advertise inside VLANs to vIOS1 ----------
+router ospf 1
+ router-id 10.10.1.2
+ network 10.10.1.0 255.255.255.252 area 0
+ network 192.168.10.0 255.255.255.0 area 0
+ network 192.168.20.0 255.255.255.0 area 0
+ network 192.168.30.0 255.255.255.0 area 0
+!
+! ---------- Objects ----------
+object network SITEA-VLAN10
+ subnet 192.168.10.0 255.255.255.0
+object network SITEA-VLAN20
+ subnet 192.168.20.0 255.255.255.0
+object network SITEA-VLAN30
+ subnet 192.168.30.0 255.255.255.0
+object network SITEB-NET
+ subnet 172.16.0.0 255.255.0.0
+!
+! ---------- Identity NAT so VPN traffic is not translated ----------
+nat (inside-servers,outside) source static SITEA-VLAN10 SITEA-VLAN10 destination static SITEB-NET SITEB-NET no-proxy-arp route-lookup
+nat (inside-vpc10,outside) source static SITEA-VLAN20 SITEA-VLAN20 destination static SITEB-NET SITEB-NET no-proxy-arp route-lookup
+nat (inside-vpc11,outside) source static SITEA-VLAN30 SITEA-VLAN30 destination static SITEB-NET SITEB-NET no-proxy-arp route-lookup
+!
+! ---------- Firewall policy: outside inbound (only VPN/ICMP, deny+log rest) ----------
+access-list OUTSIDE-IN extended permit icmp any any echo-reply
+access-list OUTSIDE-IN extended deny ip any any log
+access-group OUTSIDE-IN in interface outside
+!
+! ---------- Firewall policy: isolate VPC11 (red/attacker VLAN30) from the server VLAN ----------
+access-list VLAN30-OUT extended deny ip 192.168.30.0 255.255.255.0 192.168.10.0 255.255.255.0 log
+access-list VLAN30-OUT extended permit ip any any
+access-group VLAN30-OUT in interface inside-vpc11
+!
+! ---------- Site-to-site VPN traffic selector ----------
+access-list VPN-TRAFFIC extended permit ip object SITEA-VLAN10 object SITEB-NET
+access-list VPN-TRAFFIC extended permit ip object SITEA-VLAN20 object SITEB-NET
+access-list VPN-TRAFFIC extended permit ip object SITEA-VLAN30 object SITEB-NET
+!
+! ---------- IKEv2 / IPsec to FortiGate (10.20.1.2) ----------
+crypto ikev2 policy 10
+ encryption aes-256
+ integrity sha256
+ group 14
+ prf sha256
+ lifetime seconds 86400
+!
+crypto ikev2 enable outside
+!
+group-policy VPN-SITEB internal
+tunnel-group 10.20.1.2 type ipsec-l2l
+tunnel-group 10.20.1.2 general-attributes
+ default-group-policy VPN-SITEB
+tunnel-group 10.20.1.2 ipsec-attributes
+ ikev2 remote-authentication pre-shared-key Str0ngVPNkey!
+ ikev2 local-authentication pre-shared-key Str0ngVPNkey!
+!
+crypto ipsec ikev2 ipsec-proposal AES256-SHA256
+ protocol esp encryption aes-256
+ protocol esp integrity sha-256
+!
+crypto map SITE-VPN 10 match address VPN-TRAFFIC
+crypto map SITE-VPN 10 set peer 10.20.1.2
+crypto map SITE-VPN 10 set ikev2 ipsec-proposal AES256-SHA256
+crypto map SITE-VPN interface outside
+!
+end
+write memory
