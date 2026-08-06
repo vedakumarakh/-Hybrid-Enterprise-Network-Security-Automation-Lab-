@@ -61,10 +61,3 @@ redistributed into BGP so the two sites learn each other's LANs across the core.
 7. Run the Python automation from `scripts/` against the Cisco devices.
 8. Use `docs/wireshark_traffic_analysis.md` for the packet-capture / threat-sim part.
 
-## Default credentials used throughout these configs
-- Cisco enable/login: `admin` / `Cisco@12345`
-- FortiGate admin: set your own password on first login (`configs/fortigate.txt` note)
-- VPN pre-shared key: `Str0ngVPNkey!`
-
-Change these before you screenshot/demo this, and definitely before putting it on GitHub —
-put a placeholder or `.env`-style redaction in your repo instead of the real strings.
