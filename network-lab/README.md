@@ -29,8 +29,7 @@ Site B = FortiGate + Switch5 + VPC9/Win (behind FortiGate)
 Core   = vIOS1 / vIOS3 / vIOS2 act as the WAN/ISP backbone between the two sites
 
 VPC11 is flagged red in your diagram — it's used here as the "attacker / red-team"
-host in VLAN 30, isolated from the server VLAN, for the threat-simulation bullet
-on your resume.
+host in VLAN 30, isolated from the server VLAN, for the threat-simulation.
 
 ## IP addressing plan
 
